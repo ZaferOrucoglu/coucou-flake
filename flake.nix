@@ -1,23 +1,63 @@
 {
-  description = "Coucou - Mochi lives at the top of your screen";
+  description = "Nix flake for Coucou - AI coding agent companion and dynamic island";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        packages.default = pkgs.callPackage ./package.nix { };
-        packages.coucou = self.packages.${system}.default;
+  outputs = { self, nixpkgs }:
+    let
+      supportedSystems = [ "x86_64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      pkgsFor = nixpkgs.legacyPackages;
+    in
+    {
+      packages = forAllSystems (system: {
+        coucou = pkgsFor.${system}.callPackage ./package.nix { };
+        default = self.packages.${system}.coucou;
+      });
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = self.packages.${system}.default;
-        };
-      }
-    );
+      checks = forAllSystems (system: {
+        inherit (self.packages.${system}) coucou;
+      });
+
+      apps = forAllSystems (system:
+        let
+          pkgs = pkgsFor.${system};
+          updateScript = pkgs.writeShellApplication {
+            name = "update-coucou";
+            runtimeInputs = with pkgs; [ curl jq gnugrep gnused nix git coreutils ];
+            text = ''
+              exec ${./update.sh} "$@"
+            '';
+          };
+        in
+        {
+          coucou = {
+            type = "app";
+            program = "${self.packages.${system}.coucou}/bin/coucou";
+            meta = {
+              description = "Coucou";
+            };
+          };
+          update = {
+            type = "app";
+            program = "${updateScript}/bin/update-coucou";
+            meta = {
+              description = "Update Coucou package to the latest release";
+            };
+          };
+          default = self.apps.${system}.coucou;
+        });
+
+      overlays.default = final: prev: {
+        coucou = self.packages.${final.system}.coucou;
+      };
+
+      nixosModules.default = { pkgs, ... }: {
+        environment.systemPackages = [
+          self.packages.${pkgs.stdenv.hostPlatform.system}.coucou
+        ];
+      };
+    };
 }
