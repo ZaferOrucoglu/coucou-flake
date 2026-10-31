@@ -91,9 +91,11 @@ stdenv.mkDerivation rec {
     fi
     chmod +x $out/bin/coucou $out/bin/coucou-hook $out/lib/Coucou/coucou-hook
 
-    # Install both fr.louisraille.coucou.desktop and Coucou.desktop so XDG Desktop Portal matches app id
+    # Use fr.louisraille.coucou.desktop so XDG Desktop Portal matches app id and avoid duplicate entries in menus
     mkdir -p $out/share/applications
-    cp $out/share/applications/Coucou.desktop $out/share/applications/fr.louisraille.coucou.desktop
+    if [ -f $out/share/applications/Coucou.desktop ]; then
+      mv $out/share/applications/Coucou.desktop $out/share/applications/fr.louisraille.coucou.desktop
+    fi
 
     runHook postInstall
   '';
