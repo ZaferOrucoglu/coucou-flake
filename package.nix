@@ -32,11 +32,11 @@
 
 stdenv.mkDerivation rec {
   pname = "coucou";
-  version = "0.5.8";
+  version = "0.5.9";
 
   src = fetchurl {
     url = "https://github.com/Louis-CFM/coucou/releases/download/linux-v${version}/Coucou-Linux-${version}-amd64.deb";
-    hash = "sha256-6sVVaQKqaN+u2ZLXXXd2fvXS/QkpScp+oF2787wX3XY=";
+    hash = "sha256-gZq/nc4anwvgIwjXwqSVEFy9EzU+W1ryrCKWwo9qJ50=";
   };
 
   nativeBuildInputs = [
